@@ -30,14 +30,30 @@ public class MainApplication : MauiApplication
 			string logText = $"[{DateTime.Now}] Crash from {source}:\n{ex}\n\n";
 			System.Diagnostics.Debug.WriteLine($"[CRASH] {logText}");
 			
+			// 1. App-specific external files dir (always writable without any permissions: Android/data/com.companyname.sk70planering/files/sk70_crash.txt)
+			if (Android.App.Application.Context?.GetExternalFilesDir(null)?.AbsolutePath is string extDir)
+			{
+				string extPath = System.IO.Path.Combine(extDir, "sk70_crash.txt");
+				System.IO.File.AppendAllText(extPath, logText);
+			}
+
+			// 2. Internal app files dir (data/user/0/com.companyname.sk70planering/files/sk70_crash.txt)
 			if (Android.App.Application.Context?.FilesDir?.AbsolutePath is string filesDir)
 			{
-				string appPath = System.IO.Path.Combine(filesDir, "crash_log.txt");
+				string appPath = System.IO.Path.Combine(filesDir, "sk70_crash.txt");
 				System.IO.File.AppendAllText(appPath, logText);
 			}
 
-			string downloadsPath = "/sdcard/Download/sk70_crash.txt";
-			System.IO.File.AppendAllText(downloadsPath, logText);
+			// 3. Public Download folder
+			try
+			{
+				if (Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads)?.AbsolutePath is string downloadsDir)
+				{
+					string downloadsPath = System.IO.Path.Combine(downloadsDir, "sk70_crash.txt");
+					System.IO.File.AppendAllText(downloadsPath, logText);
+				}
+			}
+			catch { }
 		}
 		catch { }
 	}

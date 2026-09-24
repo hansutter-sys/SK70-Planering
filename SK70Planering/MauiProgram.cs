@@ -7,17 +7,32 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
-		SQLitePCL.Batteries_V2.Init();
-
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
-			.UseBarcodeReader()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
+
+		try
+		{
+			SQLitePCL.Batteries_V2.Init();
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"[INIT ERROR] SQLite: {ex}");
+		}
+
+		try
+		{
+			builder.UseBarcodeReader();
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"[INIT ERROR] ZXing: {ex}");
+		}
 
 #if DEBUG
 		builder.Logging.AddDebug();
