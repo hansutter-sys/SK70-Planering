@@ -1,24 +1,72 @@
-﻿namespace SK70Planering;
+namespace SK70Planering;
 
 public partial class MainPage : ContentPage
 {
-	int count = 0;
+	private int count = 0;
 
 	public MainPage()
 	{
-		InitializeComponent();
+		try
+		{
+			InitializeComponent();
+		}
+		catch { }
+
+		BuildUI();
 	}
 
-	private void OnCounterClicked(object sender, EventArgs e)
+	private void BuildUI()
 	{
-		count++;
+		BackgroundColor = Color.FromArgb("#121212");
 
-		if (count == 1)
-			CounterBtn.Text = $"Clicked {count} time";
-		else
-			CounterBtn.Text = $"Clicked {count} times";
+		var titleLabel = new Label
+		{
+			Text = "SK70-Planering",
+			FontSize = 28,
+			FontAttributes = FontAttributes.Bold,
+			TextColor = Colors.White,
+			HorizontalOptions = LayoutOptions.Center
+		};
 
-		SemanticScreenReader.Announce(CounterBtn.Text);
+		var statusLabel = new Label
+		{
+			Text = "Appen är igång! Alla moduler laddade.",
+			FontSize = 16,
+			TextColor = Color.FromArgb("#4CAF50"),
+			HorizontalOptions = LayoutOptions.Center,
+			HorizontalTextAlignment = TextAlignment.Center
+		};
+
+		var counterBtn = new Button
+		{
+			Text = "Testa klicka här (0)",
+			BackgroundColor = Color.FromArgb("#512BD4"),
+			TextColor = Colors.White,
+			FontSize = 18,
+			CornerRadius = 10,
+			Padding = new Thickness(20, 12),
+			HorizontalOptions = LayoutOptions.Center,
+			Margin = new Thickness(0, 20)
+		};
+
+		counterBtn.Clicked += (sender, e) =>
+		{
+			count++;
+			counterBtn.Text = $"Klickad {count} gånger!";
+		};
+
+		Content = new VerticalStackLayout
+		{
+			Padding = 30,
+			Spacing = 20,
+			VerticalOptions = LayoutOptions.Center,
+			Children =
+			{
+				titleLabel,
+				statusLabel,
+				counterBtn
+			}
+		};
 	}
 }
 
