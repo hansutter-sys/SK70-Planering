@@ -29,6 +29,7 @@ public class MainApplication : MauiApplication
 		{
 			string logText = $"[{DateTime.Now}] Crash from {source}:\n{ex}\n\n";
 			System.Diagnostics.Debug.WriteLine($"[CRASH] {logText}");
+			Android.Util.Log.Error("SK70Planering", logText);
 			
 			// 1. App-specific external files dir (always writable without any permissions: Android/data/com.companyname.sk70planering/files/sk70_crash.txt)
 			if (Android.App.Application.Context?.GetExternalFilesDir(null)?.AbsolutePath is string extDir)
