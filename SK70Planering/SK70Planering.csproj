@@ -2,7 +2,6 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>net8.0-android</TargetFrameworks>
-		<RuntimeIdentifiers Condition="$(TargetFramework.Contains('-android'))">android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks>
 
 		<OutputType>Exe</OutputType>
@@ -12,6 +11,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<CheckEolTargetFramework>false</CheckEolTargetFramework>
+		<SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
 
 		<!-- Ensure APK is standalone and does not rely on missing Mono Shared Runtime in Debug mode -->
 		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
@@ -54,12 +54,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.Maui.Controls" Version="8.0.100" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
 		<PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
-		<PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3475" />
-		<PackageReference Include="Google.Apis.Forms.v1" Version="1.68.0.3470" />
-		<PackageReference Include="Google.Apis.Gmail.v1" Version="1.68.0.3486" />
-		<PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3479" />
+		<PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3490" />
+		<PackageReference Include="Google.Apis.Forms.v1" Version="1.68.0.3603" />
+		<PackageReference Include="Google.Apis.Gmail.v1" Version="1.69.0.3742" />
+		<PackageReference Include="Google.Apis.Sheets.v4" Version="1.68.0.3484" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
 		<PackageReference Include="SQLiteNetExtensions.Async" Version="2.1.0" />

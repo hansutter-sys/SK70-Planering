@@ -32,11 +32,11 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore SK70Planering/SK70Planering.csproj -p:CheckEolTargetFramework=false
 
-    - name: Build Android APK (Release)
-      run: dotnet publish SK70Planering/SK70Planering.csproj -f net8.0-android -c Release -p:AndroidPackageFormat=apk -p:EmbedAssembliesIntoApk=true -p:CheckEolTargetFramework=false
+    - name: Build Android APK
+      run: dotnet build SK70Planering/SK70Planering.csproj -f net8.0-android -c Release -p:AndroidPackageFormat=apk -p:EmbedAssembliesIntoApk=true -p:CheckEolTargetFramework=false
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: SK70Planering-Android-APK
-        path: SK70Planering/bin/Release/net8.0-android/**/*.apk
+        path: SK70Planering/bin/**/net8.0-android/*.apk

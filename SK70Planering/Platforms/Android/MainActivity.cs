@@ -25,11 +25,14 @@ public class MainActivity : MauiAppCompatActivity
 		{
 			try
 			{
-				new Android.App.AlertDialog.Builder(this)
-					.SetTitle($"⚠️ {title}")
-					.SetMessage(ex.ToString())
-					.SetPositiveButton("OK", (s, e) => { })
-					.Show();
+				if (!IsFinishing && !IsDestroyed)
+				{
+					new Android.App.AlertDialog.Builder(this)
+						.SetTitle($"⚠️ {title}")
+						.SetMessage(ex?.ToString() ?? "Unknown error")
+						.SetPositiveButton("OK", (s, e) => { })
+						.Show();
+				}
 			}
 			catch { }
 		});

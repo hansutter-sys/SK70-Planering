@@ -28,7 +28,7 @@ public partial class MainPage : ContentPage
         _contentScrollView = new ScrollView
         {
             Content = _tabContentStack,
-            VerticalOptions = LayoutOptions.FillAndExpand
+            VerticalOptions = LayoutOptions.Fill
         };
 
         _tabBar = CreateBottomTabBar();
@@ -102,7 +102,7 @@ public partial class MainPage : ContentPage
         {
             BackgroundColor = Color.FromArgb("#1E1E1E"),
             HeightRequest = 60,
-            HorizontalOptions = LayoutOptions.FillAndExpand
+            HorizontalOptions = LayoutOptions.Fill
         };
 
         string[] tabTitles = { "Översikt", "Schema", "Närvaro", "Medlemmar", "Synk" };
@@ -117,7 +117,7 @@ public partial class MainPage : ContentPage
                 FontAttributes = FontAttributes.Bold,
                 TextColor = Color.FromArgb("#AAAAAA"),
                 BackgroundColor = Colors.Transparent,
-                HorizontalOptions = LayoutOptions.FillAndExpand,
+                HorizontalOptions = LayoutOptions.Fill,
                 CornerRadius = 0
             };
             btn.Clicked += (s, e) => SwitchTab(tabIndex);
