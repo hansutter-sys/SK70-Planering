@@ -26,6 +26,7 @@ public class DatabaseService
             await _db.CreateTableAsync<Member>();
             await _db.CreateTableAsync<ClubEvent>();
             await _db.CreateTableAsync<AttendanceRecord>();
+            await _db.CreateTableAsync<EventStaffAssignment>();
 
             int memberCount = await _db.Table<Member>().CountAsync();
             if (memberCount == 0)
@@ -132,6 +133,28 @@ public class DatabaseService
                 await _db.InsertAllAsync(seedEvents);
             }
 
+            int staffCount = await _db.Table<EventStaffAssignment>().CountAsync();
+            if (staffCount == 0)
+            {
+                var events = await _db.Table<ClubEvent>().ToListAsync();
+                var speedoMeet = events.FirstOrDefault(e => e.Title.Contains("Borås Speedo"));
+                if (speedoMeet != null)
+                {
+                    var seedStaff = new List<EventStaffAssignment>
+                    {
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Tävlingsledare", AssignedPersonName = "Peter H", AssignedPersonPhone = "070-1112233", ShiftOrNotes = "Hela helgen", IsConfirmed = true },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Starter", AssignedPersonName = "Mikael A", AssignedPersonPhone = "070-2223344", ShiftOrNotes = "Lördag + Söndag", IsConfirmed = true },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Sekretariat & Tempus/Ares", AssignedPersonName = "Karin S", AssignedPersonPhone = "070-3334455", ShiftOrNotes = "Pass 1 & 2", IsConfirmed = true },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Tidtagare Bana 1", AssignedPersonName = "Anna Lindberg (Förälder)", AssignedPersonPhone = "070-2345678", ShiftOrNotes = "Pass 1 (Förmiddag)", IsConfirmed = true },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Tidtagare Bana 2", AssignedPersonName = "Lars Persson", AssignedPersonPhone = "070-5678901", ShiftOrNotes = "Pass 1 (Förmiddag)", IsConfirmed = false },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Tidtagare Bana 3", AssignedPersonName = "", AssignedPersonPhone = "", ShiftOrNotes = "Pass 1 (Förmiddag)", IsConfirmed = false },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Vändningskontrollant Bana 1-4", AssignedPersonName = "", AssignedPersonPhone = "", ShiftOrNotes = "Pass 1 (Förmiddag)", IsConfirmed = false },
+                        new EventStaffAssignment { EventId = speedoMeet.Id, RoleName = "Kiosk & Funktionärsfika", AssignedPersonName = "Sofia E", AssignedPersonPhone = "070-7778899", ShiftOrNotes = "Lördag förmiddag", IsConfirmed = true }
+                    };
+                    await _db.InsertAllAsync(seedStaff);
+                }
+            }
+
             _isInitialized = true;
         }
         catch (Exception ex)
@@ -158,6 +181,12 @@ public class DatabaseService
         return await _db.Table<ClubEvent>().OrderBy(s => s.Date).ThenBy(s => s.StartTime).ToListAsync();
     }
 
+    public async Task<ClubEvent?> GetEventByIdAsync(int id)
+    {
+        await EnsureInitializedAsync();
+        return await _db.Table<ClubEvent>().FirstOrDefaultAsync(e => e.Id == id);
+    }
+
     public async Task<List<ClubEvent>> GetEventsByTypeAsync(EventType type)
     {
         await EnsureInitializedAsync();
@@ -173,7 +202,60 @@ public class DatabaseService
     public async Task<int> DeleteEventAsync(int id)
     {
         await EnsureInitializedAsync();
+        // Also clean up staff assignments for this event
+        await _db.Table<EventStaffAssignment>().DeleteAsync(s => s.EventId == id);
         return await _db.Table<ClubEvent>().DeleteAsync(e => e.Id == id);
+    }
+
+    // Staffing / Bemanning
+    public async Task<List<EventStaffAssignment>> GetStaffAssignmentsAsync(int eventId)
+    {
+        await EnsureInitializedAsync();
+        return await _db.Table<EventStaffAssignment>().Where(s => s.EventId == eventId).ToListAsync();
+    }
+
+    public async Task<int> SaveStaffAssignmentAsync(EventStaffAssignment assignment)
+    {
+        await EnsureInitializedAsync();
+        return assignment.Id != 0 ? await _db.UpdateAsync(assignment) : await _db.InsertAsync(assignment);
+    }
+
+    public async Task<int> DeleteStaffAssignmentAsync(int id)
+    {
+        await EnsureInitializedAsync();
+        return await _db.Table<EventStaffAssignment>().DeleteAsync(s => s.Id == id);
+    }
+
+    public async Task EnsureDefaultStaffRolesAsync(int eventId, EventType type)
+    {
+        await EnsureInitializedAsync();
+        int count = await _db.Table<EventStaffAssignment>().Where(s => s.EventId == eventId).CountAsync();
+        if (count == 0)
+        {
+            var defaultRoles = type == EventType.Competition
+                ? new List<string>
+                {
+                    "Tävlingsledare", "Starter", "Sekretariat / Ares",
+                    "Tidtagare Bana 1", "Tidtagare Bana 2", "Tidtagare Bana 3", "Tidtagare Bana 4",
+                    "Vändningskontrollant 1-4", "Kiosk / Funktionärsfika", "Tränare på kanten"
+                }
+                : new List<string>
+                {
+                    "Huvudledare", "Assisterande Ledare", "Chaufför / Logistik", "Måltidsansvarig"
+                };
+
+            var assignments = defaultRoles.Select(role => new EventStaffAssignment
+            {
+                EventId = eventId,
+                RoleName = role,
+                AssignedPersonName = "",
+                AssignedPersonPhone = "",
+                ShiftOrNotes = "Hela passet",
+                IsConfirmed = false
+            }).ToList();
+
+            await _db.InsertAllAsync(assignments);
+        }
     }
 
     // Backward compatibility helpers
