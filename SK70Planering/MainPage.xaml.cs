@@ -476,6 +476,10 @@ public partial class MainPage : ContentPage
         }
 
         dateText += $" | 📍 {ev.Location}";
+        if (ev.Type == EventType.Competition && ev.LaneCount > 0)
+        {
+            dateText += $" ({ev.LaneCount} banor × {ev.PoolLengthMeters} m)";
+        }
         cardLayout.Add(new Label { Text = dateText, TextColor = Color.FromArgb("#CCCCCC"), FontSize = 12 });
 
         // Grupp & Ansvarig
@@ -625,8 +629,31 @@ public partial class MainPage : ContentPage
         if (string.IsNullOrWhiteSpace(newTitle)) return;
         ev.Title = newTitle;
 
-        string newLocation = await DisplayPromptAsync("Redigera Händelse", "Plats / Simhall:", initialValue: ev.Location);
-        if (!string.IsNullOrWhiteSpace(newLocation)) ev.Location = newLocation;
+        if (ev.Type == EventType.Competition)
+        {
+            bool changeVenue = await DisplayAlert("Simhall", $"Nuvarande: {ev.Location} ({ev.LaneCount} banor, {ev.PoolLengthMeters} m).\nVill du byta eller lägga upp ny simhall?", "Byt / ny simhall", "Behåll");
+            if (changeVenue)
+            {
+                var venue = await PickOrCreateVenueAsync();
+                if (venue != null)
+                {
+                    ev.VenueId = venue.Id;
+                    ev.Location = venue.Name;
+                    ev.LaneCount = venue.LaneCount;
+                    ev.PoolLengthMeters = venue.PoolLengthMeters;
+                }
+            }
+
+            string lanesStr = await DisplayPromptAsync("Antal banor", "Antal banor:", initialValue: ev.LaneCount.ToString(), keyboard: Keyboard.Numeric);
+            if (int.TryParse(lanesStr, out var lc) && lc > 0) ev.LaneCount = lc;
+            string lengthStr = await DisplayPromptAsync("Banlängd", "Banlängd i meter:", initialValue: ev.PoolLengthMeters.ToString(), keyboard: Keyboard.Numeric);
+            if (int.TryParse(lengthStr, out var pl) && pl > 0) ev.PoolLengthMeters = pl;
+        }
+        else
+        {
+            string newLocation = await DisplayPromptAsync("Redigera Händelse", "Plats / Simhall:", initialValue: ev.Location);
+            if (!string.IsNullOrWhiteSpace(newLocation)) ev.Location = newLocation;
+        }
 
         string newGroup = await DisplayPromptAsync("Redigera Händelse", "Målgrupp / Trupp:", initialValue: ev.GroupName);
         if (!string.IsNullOrWhiteSpace(newGroup)) ev.GroupName = newGroup;
@@ -685,12 +712,55 @@ public partial class MainPage : ContentPage
         SwitchTab(1);
     }
 
+    private async Task<Venue?> PickOrCreateVenueAsync()
+    {
+        var venues = await DatabaseService.Instance.GetVenuesAsync();
+        const string newOption = "➕ Lägg upp ny simhall";
+        var options = venues.Select(v => $"{v.Name} ({v.LaneCount} banor, {v.PoolLengthMeters} m)").ToList();
+        options.Add(newOption);
+
+        string choice = await DisplayActionSheet("Välj simhall", "Avbryt", null, options.ToArray());
+        if (string.IsNullOrEmpty(choice) || choice == "Avbryt") return null;
+
+        if (choice != newOption)
+        {
+            int idx = options.IndexOf(choice);
+            return idx >= 0 && idx < venues.Count ? venues[idx] : null;
+        }
+
+        string name = await DisplayPromptAsync("Ny simhall", "Namn på simhallen:");
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        string city = await DisplayPromptAsync("Ny simhall", "Ort / adress:", initialValue: "Borås");
+        string lanesStr = await DisplayPromptAsync("Ny simhall", "Antal banor:", initialValue: "8", keyboard: Keyboard.Numeric);
+        string lengthStr = await DisplayPromptAsync("Ny simhall", "Banlängd i meter (25 eller 50):", initialValue: "50", keyboard: Keyboard.Numeric);
+
+        var venue = new Venue
+        {
+            Name = name.Trim(),
+            City = city ?? string.Empty,
+            LaneCount = int.TryParse(lanesStr, out var l) && l > 0 ? l : 8,
+            PoolLengthMeters = int.TryParse(lengthStr, out var m) && m > 0 ? m : 50
+        };
+        await DatabaseService.Instance.SaveVenueAsync(venue);
+        return venue;
+    }
+
     private async Task PromptCreateCompetitionAsync()
     {
         string title = await DisplayPromptAsync("Nytt Tävlingsevent", "Ange tävlingens namn:", initialValue: "Borås Speedo Meet 2026");
         if (string.IsNullOrWhiteSpace(title)) return;
 
-        string location = await DisplayPromptAsync("Plats", "Ange plats/simhall:", initialValue: "Borås Simhall 50m");
+        var venue = await PickOrCreateVenueAsync();
+        if (venue == null) return; // avbrutet - inget sparas
+
+        string lanesStr = await DisplayPromptAsync("Antal banor", $"Antal banor för tävlingen (simhallen har {venue.LaneCount}):", initialValue: venue.LaneCount.ToString(), keyboard: Keyboard.Numeric);
+        if (lanesStr == null) return;
+        string lengthStr = await DisplayPromptAsync("Banlängd", "Banlängd i meter:", initialValue: venue.PoolLengthMeters.ToString(), keyboard: Keyboard.Numeric);
+        if (lengthStr == null) return;
+        int laneCount = int.TryParse(lanesStr, out var lc) && lc > 0 ? lc : venue.LaneCount;
+        int poolLength = int.TryParse(lengthStr, out var pl) && pl > 0 ? pl : venue.PoolLengthMeters;
+
+        string location = venue.Name;
         string organizer = await DisplayPromptAsync("Arrangör", "Arrangerande förening:", initialValue: "SK70 Borås");
         string group = await DisplayPromptAsync("Målgrupp", "Vilka trupper ska delta:", initialValue: "A-Trupp, B-Trupp");
         string deadlineStr = await DisplayPromptAsync("Sista anmälningsdag", "Datum för anmälningsstopp (ÅÅÅÅ-MM-DD):", initialValue: DateTime.Today.AddDays(7).ToString("yyyy-MM-dd"));
@@ -703,6 +773,9 @@ public partial class MainPage : ContentPage
             Type = EventType.Competition,
             Title = title,
             Location = string.IsNullOrWhiteSpace(location) ? "Borås Simhall 50m" : location,
+            VenueId = venue.Id,
+            LaneCount = laneCount,
+            PoolLengthMeters = poolLength,
             Organizer = string.IsNullOrWhiteSpace(organizer) ? "SK70 Borås" : organizer,
             GroupName = string.IsNullOrWhiteSpace(group) ? "Alla trupper" : group,
             Date = DateTime.Today.AddDays(14),

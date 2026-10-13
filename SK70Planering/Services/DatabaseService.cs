@@ -27,6 +27,17 @@ public class DatabaseService
             await _db.CreateTableAsync<ClubEvent>();
             await _db.CreateTableAsync<AttendanceRecord>();
             await _db.CreateTableAsync<EventStaffAssignment>();
+            await _db.CreateTableAsync<Venue>();
+
+            if (await _db.Table<Venue>().CountAsync() == 0)
+            {
+                await _db.InsertAllAsync(new List<Venue>
+                {
+                    new Venue { Name = "Borås Simhall 50m", City = "Borås", LaneCount = 8, PoolLengthMeters = 50 },
+                    new Venue { Name = "Borås Simhall 25m", City = "Borås", LaneCount = 6, PoolLengthMeters = 25 },
+                    new Venue { Name = "Alidebergsbadet", City = "Borås", LaneCount = 6, PoolLengthMeters = 25 }
+                });
+            }
 
             int memberCount = await _db.Table<Member>().CountAsync();
             if (memberCount == 0)
@@ -163,6 +174,18 @@ public class DatabaseService
         }
     }
 
+    public async Task<List<Venue>> GetVenuesAsync()
+    {
+        await EnsureInitializedAsync();
+        return await _db.Table<Venue>().OrderBy(v => v.Name).ToListAsync();
+    }
+
+    public async Task<int> SaveVenueAsync(Venue venue)
+    {
+        await EnsureInitializedAsync();
+        return venue.Id != 0 ? await _db.UpdateAsync(venue) : await _db.InsertAsync(venue);
+    }
+
     public async Task<List<Member>> GetMembersAsync()
     {
         await EnsureInitializedAsync();
@@ -273,6 +296,9 @@ public class DatabaseService
             StartTime = e.StartTime,
             EndTime = e.EndTime,
             Location = e.Location,
+            VenueId = e.VenueId,
+            LaneCount = e.LaneCount,
+            PoolLengthMeters = e.PoolLengthMeters,
             Coach = e.Coach,
             RegistrationDeadline = e.RegistrationDeadline,
             Organizer = e.Organizer,

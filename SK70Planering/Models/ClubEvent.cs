@@ -23,6 +23,9 @@ public class ClubEvent
     public TimeSpan StartTime { get; set; } = new TimeSpan(17, 0, 0);
     public TimeSpan EndTime { get; set; } = new TimeSpan(19, 0, 0);
     public string Location { get; set; } = "Borås Simhall 50m";
+    public int VenueId { get; set; }
+    public int LaneCount { get; set; } = 0;
+    public int PoolLengthMeters { get; set; } = 0;
     public string Coach { get; set; } = "Huvudtränare";
     
     // Tävling & Läger fält
